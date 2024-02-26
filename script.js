@@ -31,6 +31,50 @@ const paddleHeight = 10;
 let paddleX = (canvas.width - paddleWidth) / 2;
 let paddleY = canvas.height - paddleHeight - 20;
 
+const PADDLE_SENSITIVITY = 6;
+
+let rightArrowPressed = false;
+let leftArrowPressed = false;
+
+// Variables de los ladrillos
+
+const bricksRowCount = 6;
+const bricksColCount = 32;
+const brickWidth = 30;
+const brickHeight = 14;
+const bricksPadding = 2;
+const brickOffsetTop = 80;
+const brickOffsetLeft = 15;
+const bricks = [];
+
+const BRICKS_STATUS = {
+  DESTROYED: 0,
+  ACTIVE: 1,
+};
+
+for (let col = 0; col < bricksColCount; col++) {
+  // Array vacío por cada columna
+  bricks[col] = [];
+
+  for (let row = 0; row < bricksRowCount; row++) {
+    // Calcular la posición del ladrillo en la pantalla
+    const brickX = col * (brickWidth + bricksPadding) + brickOffsetLeft;
+    const brickY = row * (brickHeight + bricksPadding) + brickOffsetTop;
+
+    // Asignar color aleatorio a cada ladrillo
+    const random = Math.floor(Math.random() * 8);
+
+    // Guardar la info de cada ladrillo
+
+    bricks[col][row] = {
+      x: brickX,
+      y: brickY,
+      status: BRICKS_STATUS.ACTIVE,
+      color: random,
+    };
+  }
+}
+
 function drawBall() {
   // Dibujar el trazo
   ctx.beginPath();
@@ -94,14 +138,99 @@ function drawPaddle() {
   );
 }
 
+function drawBricks() {
+  for (let col = 0; col < bricksColCount; col++) {
+    for (let row = 0; row < bricksRowCount; row++) {
+      const currentBrick = bricks[col][row];
+      if (currentBrick.status === BRICKS_STATUS.DESTROYED) continue;
 
+      ctx.fillStyle = "yellow";
+      // ctx.rect(currentBrick.x, currentBrick.y, brickWidth, brickHeight);
+      ctx.stroke();
+      ctx.fill();
+
+      const clipX = currentBrick.color * 32;
+      // Dibujar una imagen
+      ctx.drawImage(
+        $bricks, // imagen
+        clipX, // ClipX: coordenadas del recorte
+        0, // ClipY: coordenadas del recorte
+        32, // Tamaño del recorte
+        14, // Tamaño del recorte
+        currentBrick.x, // Posición X del dibujo
+        currentBrick.y, // Posición Y del dibujo
+        brickWidth, // Ancho del dibujo
+        brickHeight // Alto del dibujo
+      );
+    }
+  }
+}
+
+function paddleMovement() {
+  if (rightArrowPressed && paddleX < canvas.width - paddleWidth) {
+    paddleX += PADDLE_SENSITIVITY;
+  } else if (leftArrowPressed && paddleX > 0) {
+    paddleX -= PADDLE_SENSITIVITY;
+  }
+}
+
+function cleanCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function initEvents() {
+  document.addEventListener("keydown", keyDownHandler);
+  document.addEventListener("keyup", keyUpHandler);
+
+  function keyDownHandler(event) {
+    const { key } = event;
+
+    if (key === "Right" || key === "ArrowRight") {
+      rightArrowPressed = true;
+    } else if (key === "Left" || key === "ArrowLeft") {
+      leftArrowPressed = true;
+    }
+  }
+
+  function keyUpHandler(event) {
+    const { key } = event;
+
+    if (key === "Right" || key === "ArrowRight") {
+      rightArrowPressed = false;
+    } else if (key === "Left" || key === "ArrowLeft") {
+      leftArrowPressed = false;
+    }
+  }
+}
+
+function collisionDetection() {
+  for (let col = 0; col < bricksColCount; col++) {
+    for (let row = 0; row < bricksRowCount; row++) {
+      const currentBrick = bricks[col][row];
+      if (currentBrick.status === BRICKS_STATUS.DESTROYED) continue;
+
+      const isBallSameXAsBrick = X > currentBrick.x && X < currentBrick.x + brickWidth;
+      const isBallSameYAsBrick = Y > currentBrick.y && Y < currentBrick.y + brickHeight;
+
+      if(isBallSameXAsBrick && isBallSameYAsBrick){
+        DY = -DY
+        currentBrick.status = BRICKS_STATUS.DESTROYED
+      }
+    }
+  }
+}
 
 function draw() {
+  cleanCanvas();
   drawBall();
   drawPaddle();
+  drawBricks();
   ballMovement();
+  paddleMovement();
+  collisionDetection();
 
   window.requestAnimationFrame(draw);
 }
 
 draw();
+initEvents();
